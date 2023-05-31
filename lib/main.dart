@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'dart:typed_data';
 
+import 'package:app_prova_tirocinio/controlloLocation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +17,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_prova_tirocinio/provaAvvisiSegnali.dart';
+import 'package:app_prova_tirocinio/controlloLocation.dart';
 import 'dart:ui' as ui;
 
 
@@ -34,7 +36,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Google Maps Demo',
+      title: 'Eye2Street',
       home: MapSample(),
       
     );
@@ -65,9 +67,10 @@ class MapSampleState extends State<MapSample> {
   StreamSubscription<geolocation1.Position>? _positionStream;
   List<Marker> listamarkers=[];
   Set<Marker> setmarkers = {};
- 
+  LocationData? oldLoc;
   BitmapDescriptor? indicatorebtmp;
-
+  Timer? steadyTimeout;
+  bool _steady = true;
 
   
 
@@ -76,6 +79,7 @@ class MapSampleState extends State<MapSample> {
     location.getLocation().then(
       (location) {
         currentLocation = location;
+        
         setState(() {
           
         });
@@ -97,9 +101,7 @@ class MapSampleState extends State<MapSample> {
     {
       Segnale nuovo_segnale=
         Segnale(dati.reference.id, dati.get('categoria'), dati.get('specifica'), dati.get('descrizione'), dati.get('nomeSegnale'), dati.get('inizio'), dati.get('fine'));
-      print(nuovo_segnale);
       segnali.add(nuovo_segnale);
-      print(segnali);
     }
 
     
@@ -138,8 +140,26 @@ class MapSampleState extends State<MapSample> {
     
 
     location.onLocationChanged.listen((newLoc) {
-      
+      if(oldLoc == null)
+        oldLoc = newLoc;
       currentLocation = newLoc;
+      if(geolocation1.Geolocator.distanceBetween(oldLoc!.latitude!, oldLoc!.longitude!, currentLocation!.latitude!, currentLocation!.longitude!) >= 10){
+        oldLoc = null;
+        steadyTimeout = null;
+        _steady = false;
+      }
+        
+
+      if(steadyTimeout == null){
+        steadyTimeout=Timer(Duration(seconds: 10), () {
+          if(geolocation1.Geolocator.distanceBetween(oldLoc!.latitude!, oldLoc!.longitude!, currentLocation!.latitude!, currentLocation!.longitude!) < 10)
+            _steady = true;
+            //controlloLocation(steady: _steady);
+        });
+        
+      }
+      
+      
       googleMapController.animateCamera(CameraUpdate.newCameraPosition(
         CameraPosition(
           zoom: 16.8,
@@ -148,7 +168,9 @@ class MapSampleState extends State<MapSample> {
             newLoc.longitude!
             ),
           
-          )));
+          )
+          )
+          );
       setState(() {});
      },
      );
@@ -169,11 +191,18 @@ class MapSampleState extends State<MapSample> {
   );
   
 
-  
+ /* bool sameLocation(LocationData? currentLocation){
+    LocationData? prec_location=currentLocation;
+    const time = const Duration(minutes: 1);
+    Timer.periodic(time, (Timer t) => prec_location==currentLocation);
+    return(prec_location==currentLocation);
+
+  }*/
   
 @override
 void initState()
 {
+  _determinePosition();
   getCurrentLocation();
    setState(() {
     
@@ -198,47 +227,22 @@ void initState()
        
        
       body: currentLocation == null 
-      ? /*Column(
-        children: [
-                Padding(
-                  padding: EdgeInsets.fromLTRB(0, 70, 0, 0),
-                  child: Align(
-                        alignment: Alignment.topCenter,
-                        child:  Text("Loading. . .",
-                            style: GoogleFonts.lato(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 24,
-                            ),
-
-                            ),
-                  ),
-                ),
-                Padding(padding: EdgeInsets.fromLTRB(0, 150, 0, 0),
-                child: Align(
-                  alignment:  Alignment.center,
-                  child: Image.asset('lib/images/logofinale.png', width: 100, height: 100,),
-                ),
-                )
-                  
-          
-                  ],
-              )*/
-              Center(
-                child: CircularProgressIndicator(
-                          backgroundColor: Color.fromARGB(255, 0, 174, 255),
-                        ),
-              )
-              
+      ? 
+            
+                    Center(
+                      child: CircularProgressIndicator(
+                                backgroundColor: Color.fromARGB(255, 0, 174, 255),
+                              ),
+                    )          
       
       : Stack(
         
         children: <Widget>[
 
-      //viva git hub
       
       
       GoogleMap(
+        trafficEnabled:true,
         mapType: MapType.normal,
         markers: setmarkers.union(
         {
@@ -277,8 +281,9 @@ void initState()
 
       limite(),
 
-      provaAvvisiSegnali(segnali: [])
-          
+      provaAvvisiSegnali(segnali: []),
+      
+      
           
           
         
@@ -298,21 +303,22 @@ Future<geolocation1.Position> _determinePosition() async {
   geolocation1.LocationPermission permission;
   serviceEnabled = await geolocation1.Geolocator.isLocationServiceEnabled();
   if (!serviceEnabled) {
-    return Future.error('Location services are disabled.');
+    return Future.error('Accesso alla posizione non possibile');
   }
-
+  
   permission = await geolocation1.Geolocator.checkPermission();
   if (permission == geolocation1.LocationPermission.denied) {
        permission = await geolocation1.Geolocator.requestPermission();
        if (permission == geolocation1.LocationPermission.denied) {
-            return Future.error('Location permissions are denied');
+            return Future.error('Accesso alla posizione non permesso');
     }
   }
   
   if (permission == geolocation1.LocationPermission.deniedForever) {
     return Future.error(
-      'Location permissions are permanently denied, we cannot request permissions.');
+      'Acccesso alla posizione negato, non è possibile effettuare ancora la richiesta.');
   } 
+  
   return await geolocation1.Geolocator.getCurrentPosition();
 }
 

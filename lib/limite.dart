@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:app_prova_tirocinio/LimiteStrada.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,10 +8,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:geolocator/geolocator.dart';
-
+import 'package:flutter/services.dart' as RootBundle;
 import 'package:geolocator/geolocator.dart' as geolocation1;
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:http/http.dart' as http;
 import 'firebase_options.dart';
 
 
@@ -26,6 +27,8 @@ class limite extends StatefulWidget {
   @override
   State<limite> createState() => limiteState();
 }
+
+
 
 class limiteState extends State<limite> {
 
@@ -45,12 +48,29 @@ class limiteState extends State<limite> {
     static final Color bianco=Color.fromARGB(255, 255, 255, 255);
     Color colore = Color.fromARGB(255, 255, 255, 255);
     static final color_widget=Color.fromARGB(205, 95, 84, 84);
+
+
+    
   void _onSpeedChange(int newSpeed) {
     setState(() {
+      
       _speed = newSpeed;
     });
   }
-
+  
+  void aggiungiLimite(dynamic e){
+    Map d=e["properties"];
+    var x =d.keys;
+    if(x.contains("maxspeed"))
+      listalimiti?.add(LimiteStrada.fromJson(e));
+  }
+  Future<void> readJson() async {
+    final jsondata = await RootBundle.rootBundle.loadString('lib/json/openstreetbrowser.geojson');
+    final map = json.decode(jsondata);
+    List<dynamic> data = map["features"];
+    data.forEach((e) => aggiungiLimite(e));
+    //data.map((e) => aggiungiLimite(e));
+  }
 
 
   double calcoladistanzaInizio(Position position, LimiteStrada segnale){
@@ -66,7 +86,6 @@ class limiteState extends State<limite> {
   { 
     
     if(calcoladistanzaFine(position, limite)<50){
-      
       if(attivi.remove(limite)){
         finelimite=true;
         limiteRimosso=limite;
@@ -92,9 +111,7 @@ class limiteState extends State<limite> {
     {
       LimiteStrada nuovo_limite=
         LimiteStrada(dati.reference.id, dati.get('categoria'), dati.get('specifica'), dati.get('descrizione'), dati.get('nomeSegnale'), dati.get('valore'), dati.get('inizio'), dati.get('fine'));
-      print(nuovo_limite);
       listalimiti?.add(nuovo_limite);
-      print(listalimiti);
     }
 
                                                 
@@ -111,7 +128,7 @@ class limiteState extends State<limite> {
 
   final geolocation1.LocationSettings locationsettings = geolocation1.LocationSettings(
   accuracy: geolocation1.LocationAccuracy.bestForNavigation,
-  distanceFilter: 20,
+  distanceFilter: 1,
 );
   double velocita=0;
 
@@ -121,9 +138,8 @@ class limiteState extends State<limite> {
   }
 
  @override void initState() {
-
      listalimiti=[];
-    _future=getLimiti();
+    _future=readJson();
      _positionStream =
             geolocation1.Geolocator.getPositionStream(locationSettings: locationsettings)
             .listen((position){
@@ -154,6 +170,7 @@ class limiteState extends State<limite> {
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: _future,
+      
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done){
               return     Padding(
@@ -170,7 +187,7 @@ class limiteState extends State<limite> {
     
                 height:40,
     
-                width: 110,
+                width: 130,
     
                 child: DecoratedBox(
     
@@ -227,7 +244,7 @@ class limiteState extends State<limite> {
     
                 height:40,
     
-                width: 110,
+                width: 130,
     
                 child: DecoratedBox(
     
@@ -242,10 +259,11 @@ class limiteState extends State<limite> {
                      
     
                    ),
-    
+                    
                    child: Row(
     
                      children: <Widget>[
+                     
                       Image.asset("lib/images/"+ limiteAttivo.nomeSegnale+'.png', width: 40, height: 30,),
                       Text('$_speed KM/H',
                                       style: GoogleFonts.lato(

@@ -84,6 +84,8 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
       }
     }
   }
+
+
   double calcoladistanzaInizio(Position position, Segnale segnale){
     return(geolocation1.Geolocator.distanceBetween(position.latitude, position.longitude, segnale.inizio.latitude, segnale.inizio.longitude));
   }
@@ -99,7 +101,7 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
       if(attivi.remove(segnale)){
         fineSegnale=true;
         FlutterRingtonePlayer.play(  
-        fromAsset: "lib/sounds/fine.wav", // will be the sound on Android
+        fromAsset: "lib/sounds/fine.wav",
         ); 
         segnaleRimosso=segnale;
         const time = const Duration(seconds: 3);
@@ -112,7 +114,8 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
         else
           mostraSegnale(segnaleVuoto);
       }
-    }else{
+    }
+    else{
       if(calcoladistanzaInizio(position, segnale)<50 && !attivi.contains(segnale) && !disattivi.contains(segnale)){
         attivi.add(segnale); 
         FlutterRingtonePlayer.play(  
@@ -132,9 +135,7 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
     {
       Segnale nuovo_segnale=
         Segnale(dati.reference.id, dati.get('categoria'), dati.get('specifica'), dati.get('descrizione'), dati.get('nomeSegnale'), dati.get('inizio'), dati.get('fine'));
-      print(nuovo_segnale);
       listasegnali?.add(nuovo_segnale);
-      print(listasegnali);
     }
 
                                                 
@@ -154,7 +155,6 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
 
     listasegnali=[];
     _future=getSegnali();
-    Map<String, double> distanze={};
      
      _positionStream =
             geolocation1.Geolocator.getPositionStream(locationSettings: locationsettings)
@@ -162,8 +162,7 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
               listasegnali?.forEach((segnale) =>checkAggiunta(position, segnale));
         
             });
-            super.initState();
-            
+            super.initState();  
   }
 
 
@@ -288,8 +287,6 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
               child: Align(
                 
                 alignment: Alignment.topCenter,
-                
-              
                 child:  ListTile( 
                                   title: AnimatedContainer(
                                                         height:500,
@@ -361,32 +358,28 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
                   
                   title: Text('$nomeSegnale',
                               style: GoogleFonts.lato(
-                                                                                            color: Colors.white,
-                                                                                            fontWeight: FontWeight.bold,
-                                                                                            fontSize: 24,
-                                                                                              ),
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 24,
+                                                     ),
                               ),
                   leading: 
                   Image.asset("lib/images/"+ segn1.specifica+'.png', width: 70, height: 40,),
-                  
-                  
                 ),
-                
-                ),  
-              ),
-              ),
-              Padding(
-          padding: EdgeInsets.all(16),
-          child: 
-          Align(
-            alignment: Alignment.centerRight,
+              ),  
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Align(
+                          alignment: Alignment.centerRight,
             
             child: Padding(
               padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
               child: SizedBox(
                 
-                height: 120,
-                width: 60,
+                height: 145,
+                width: 70,
 
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -397,10 +390,17 @@ final geolocation1.LocationSettings locationsettings = geolocation1.LocationSett
                   ),
                   child: Column(
                     children: <Widget>[
+                        Padding(padding: EdgeInsets.fromLTRB(0, 3, 0, 3),
+                        child: Image.asset("lib/images/"+segn1.specifica+'.png', width: 50, height: 40,)
+                        ),
+                        Padding(padding: EdgeInsets.fromLTRB(0, 3, 0, 3),
+                        child: Image.asset("lib/images/"+segn2.specifica+'.png',width: 50, height: 40,),
+                        ),
+                        Padding(padding: EdgeInsets.fromLTRB(0, 3, 0, 3),
+                        child: Image.asset("lib/images/"+segn3.specifica+'.png',width: 50, height: 40,),
+                        )
                         
-                        Image.asset("lib/images/"+segn1.specifica+'.png', width: 50, height: 40,),
-                        Image.asset("lib/images/"+segn2.specifica+'.png',width: 50, height: 40,),
-                        Image.asset("lib/images/"+segn3.specifica+'.png',width: 50, height: 40,),
+                        
                     ],
                   ),
                   
